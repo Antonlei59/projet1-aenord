@@ -1,0 +1,224 @@
+---
+title: "Équité territoriale — Subventions d'État aux communes"
+subtitle: "Arrondissement de Lille, 2021–2025"
+author: "Anton"
+date: today
+format:
+  html:
+    toc: true
+    toc-title: "Sommaire"
+    toc-depth: 2
+    code-fold: true
+    theme: cosmo
+    fig-width: 10
+    fig-height: 8
+execute:
+  echo: true
+  warning: false
+lang: fr
+---
+
+## Introduction
+
+Ce rapport analyse la répartition des subventions d'État (DSIL, DETR, Fonds Vert, Recyclage Foncier…)
+entre les communes de l'arrondissement de Lille sur la période 2021–2025.
+
+L'objectif est de mesurer l'**équité territoriale** : chaque commune a-t-elle reçu une part
+de l'enveloppe proportionnelle à son poids démographique ?
+Les écarts positifs signalent des communes sur-dotées ; les écarts négatifs, des communes sous-dotées.
+
+---
+
+## 1. Chargement des données
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+
+# Sources
+territoire = pd.read_csv('../data/liste_territoire.csv')
+financement = pd.read_csv('../data/financement.csv')
+operation   = pd.read_csv('../data/opérations.csv')
+population  = pd.read_csv('../data/populations_communes_nord_2022.csv', dtype={'COM': str})
+
+print(f"Territoire : {len(territoire)} lignes")
+print(f"Financement : {len(financement)} lignes")
+print(f"Opérations : {len(operation)} lignes")
+print(f"Population : {len(population)} communes")
+```
+
+---
+
+## 2. Préparation
+
+### 2a. Communes de l'arrondissement de Lille (595)
+
+```{python}
+communes = territoire[territoire['type_territoire'] == 'COM'].copy()
+communes['insee_ardt'] = communes['insee_ardt'].astype(str).str[:-2]
+communes = communes[communes['insee_ardt'] == '595']
+communes['COM'] = communes['insee_siege'].dropna().astype(int).astype(str)
+
+print(f"{len(communes)} communes dans l'arrondissement de Lille")
+```
+
+### 2b. Financements actifs avec classification du dispositif
+
+```{python}
+# Exclure les lignes annulées
+financement_actif = financement[financement['is_annule'] != True].copy()
+
+# Classification fund_type
+def attribution_fund_type(type_fct):
+    if pd.isna(type_fct):
+        return 'other'
+    t = str(type_fct).lower()
+    if 'friche' in t: return 'RF'
+    if 'vert'   in t: return 'FV'
+    if 'fnadt'  in t: return 'FNADT'
+    if 'dpv'    in t: return 'DPV'
+    if 'dsil'   in t: return 'DSIL'
+    if 'det'    in t: return 'DETR'
+    return 'other'
+
+financement_actif['fund_type'] = financement_actif['type_fct'].apply(attribution_fund_type)
+
+# Jointure avec opérations pour récupérer sirene
+fin_op = financement_actif.merge(
+    operation[['id_operation', 'sirene', 'programmation']],
+    on='id_operation', how='left'
+)
+```
+
+### 2c. Filtrage sur les communes de l'arrondissement
+
+```{python}
+fin_communes = fin_op.merge(
+    communes[['sirene', 'libelle_territoire', 'COM']],
+    on='sirene', how='inner'
+)
+
+print(f"{len(fin_communes)} lignes de financement vers des communes de l'arrondissement")
+print(f"Montant total : {fin_communes['montant_sub'].sum():,.0f} €")
+```
+
+---
+
+## 3. Résultats bruts
+
+### Top 10 des communes les plus subventionnées
+
+```{python}
+sub_par_commune = (
+    fin_communes
+    .groupby(['COM', 'libelle_territoire'])['montant_sub']
+    .sum()
+    .reset_index()
+    .rename(columns={'libelle_territoire': 'commune', 'montant_sub': 'montant_recu'})
+    .sort_values('montant_recu', ascending=False)
+)
+
+top10 = sub_par_commune.head(10).copy()
+top10['montant_recu_M€'] = (top10['montant_recu'] / 1e6).round(2)
+top10[['commune', 'montant_recu_M€']].to_html(index=False)
+```
+
+---
+
+## 4. Analyse d'équité
+
+La méthode est simple : pour chaque commune, on calcule sa **quote-part démographique**
+(population / population totale de l'arrondissement), puis on en déduit le montant
+qu'elle aurait dû recevoir si la répartition avait été strictement proportionnelle.
+
+L'**écart** = montant reçu − montant théorique.
+
+```{python}
+analyse = sub_par_commune.merge(
+    population[['COM', 'Commune', 'PMUN']],
+    on='COM', how='left'
+)
+analyse['PMUN'] = pd.to_numeric(analyse['PMUN'], errors='coerce')
+
+# Totaux intra-arrondissement (communes avec données population)
+analyse_complete = analyse.dropna(subset=['PMUN']).copy()
+total_sub = analyse_complete['montant_recu'].sum()
+total_pop = analyse_complete['PMUN'].sum()
+
+analyse_complete['poids_demo']        = analyse_complete['PMUN'] / total_pop
+analyse_complete['montant_theorique'] = analyse_complete['poids_demo'] * total_sub
+analyse_complete['ecart']             = analyse_complete['montant_recu'] - analyse_complete['montant_theorique']
+analyse_complete['ecart_pct']         = (analyse_complete['ecart'] / analyse_complete['montant_theorique'] * 100).round(1)
+
+analyse_complete = analyse_complete.sort_values('ecart', ascending=False)
+
+# Affichage résumé
+cols = ['commune', 'PMUN', 'montant_recu', 'montant_theorique', 'ecart', 'ecart_pct']
+resume = analyse_complete[cols].copy()
+for col in ['montant_recu', 'montant_theorique', 'ecart']:
+    resume[col] = resume[col].apply(lambda x: f"{x/1e6:.2f} M€")
+resume['PMUN'] = resume['PMUN'].apply(lambda x: f"{int(x):,}")
+resume.columns = ['Commune', 'Population', 'Reçu', 'Quote-part théorique', 'Écart', 'Écart (%)']
+
+print(f"Enveloppe totale analysée : {total_sub/1e6:.1f} M€  |  Population couverte : {int(total_pop):,} hab.")
+resume.head(15)
+```
+
+---
+
+## 5. Visualisation
+
+```{python}
+analyse_triee = analyse_complete.sort_values('ecart')
+n = len(analyse_triee)
+
+fig, ax = plt.subplots(figsize=(12, max(10, n * 0.28)))
+
+couleurs = ['steelblue' if x >= 0 else 'tomato' for x in analyse_triee['ecart']]
+bars = ax.barh(analyse_triee['commune'], analyse_triee['ecart'] / 1e6, color=couleurs)
+
+ax.axvline(0, color='black', linewidth=0.9)
+ax.set_title(
+    "Équité territoriale — Arrondissement de Lille (2021–2025)\n"
+    "Écart entre subventions reçues et quote-part démographique",
+    fontsize=13, pad=12
+)
+ax.set_xlabel('Écart en millions d\'euros (M€)', fontsize=11)
+ax.tick_params(axis='y', labelsize=8)
+ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x:.1f} M€"))
+
+# Légende
+from matplotlib.patches import Patch
+legende = [
+    Patch(facecolor='steelblue', label='Sur-dotée (reçu > quote-part)'),
+    Patch(facecolor='tomato',    label='Sous-dotée (reçu < quote-part)')
+]
+ax.legend(handles=legende, loc='lower right', fontsize=9)
+
+plt.tight_layout()
+plt.savefig('../outputs/equite_territoriale.png', dpi=150, bbox_inches='tight')
+plt.show()
+```
+
+---
+
+## 6. Conclusion
+
+Ce premier regard sur la répartition des subventions révèle des écarts significatifs
+entre communes. Ces disparités peuvent s'expliquer par plusieurs facteurs :
+
+- **Capacité à déposer des dossiers** : les grandes communes disposent de services techniques
+  plus étoffés.
+- **Nature des projets éligibles** : certains dispositifs (DSIL) financent des projets
+  d'envergure concentrés dans les pôles urbains.
+- **Contexte politique et calendrier** : les programmations annuelles influencent les
+  attributions.
+
+Une analyse complémentaire par dispositif (`fund_type`) et par année permettrait
+d'affiner ce diagnostic.
+
+---
+
+*Données : Système d'information des aides d'État — Préfecture du Nord.
+Population : INSEE RP 2022 (PMUN). Analyse réalisée avec Python / pandas.*

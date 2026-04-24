@@ -18,6 +18,7 @@
         "    theme: cosmo\n",
         "    fig-width: 10\n",
         "    fig-height: 8\n",
+        "    embed-resources: true\n",
         "execute:\n",
         "  echo: true\n",
         "  warning: false\n",
@@ -37,7 +38,7 @@
         "\n",
         "## 1. Chargement des données"
       ],
-      "id": "90a81f89"
+      "id": "65c9f961"
     },
     {
       "cell_type": "code",
@@ -58,7 +59,7 @@
         "print(f\"Opérations : {len(operation)} lignes\")\n",
         "print(f\"Population : {len(population)} communes\")"
       ],
-      "id": "186a21cc",
+      "id": "b48e364a",
       "execution_count": null,
       "outputs": []
     },
@@ -72,7 +73,7 @@
         "\n",
         "### 2a. Communes de l'arrondissement de Lille (595)"
       ],
-      "id": "5922b81d"
+      "id": "a136c1eb"
     },
     {
       "cell_type": "code",
@@ -85,7 +86,7 @@
         "\n",
         "print(f\"{len(communes)} communes dans l'arrondissement de Lille\")"
       ],
-      "id": "87b5d493",
+      "id": "f7b924b2",
       "execution_count": null,
       "outputs": []
     },
@@ -95,7 +96,7 @@
       "source": [
         "### 2b. Financements actifs avec classification du dispositif"
       ],
-      "id": "957cd7b1"
+      "id": "9435a5e8"
     },
     {
       "cell_type": "code",
@@ -125,7 +126,7 @@
         "    on='id_operation', how='left'\n",
         ")"
       ],
-      "id": "57abdef2",
+      "id": "29514d5b",
       "execution_count": null,
       "outputs": []
     },
@@ -135,7 +136,7 @@
       "source": [
         "### 2c. Filtrage sur les communes de l'arrondissement"
       ],
-      "id": "f09bbc38"
+      "id": "c81457c7"
     },
     {
       "cell_type": "code",
@@ -149,7 +150,7 @@
         "print(f\"{len(fin_communes)} lignes de financement vers des communes de l'arrondissement\")\n",
         "print(f\"Montant total : {fin_communes['montant_sub'].sum():,.0f} €\")"
       ],
-      "id": "625ee06e",
+      "id": "fba22910",
       "execution_count": null,
       "outputs": []
     },
@@ -163,7 +164,7 @@
         "\n",
         "### Top 10 des communes les plus subventionnées"
       ],
-      "id": "a08a00da"
+      "id": "2da73807"
     },
     {
       "cell_type": "code",
@@ -182,7 +183,7 @@
         "top10['montant_recu_M€'] = (top10['montant_recu'] / 1e6).round(2)\n",
         "top10[['commune', 'montant_recu_M€']].to_html(index=False)"
       ],
-      "id": "1d5fb528",
+      "id": "0be0f51c",
       "execution_count": null,
       "outputs": []
     },
@@ -200,7 +201,7 @@
         "\n",
         "L'**écart** = montant reçu − montant théorique."
       ],
-      "id": "8b5bfdb0"
+      "id": "94bd6c62"
     },
     {
       "cell_type": "code",
@@ -235,7 +236,7 @@
         "print(f\"Enveloppe totale analysée : {total_sub/1e6:.1f} M€  |  Population couverte : {int(total_pop):,} hab.\")\n",
         "resume.head(15)"
       ],
-      "id": "725dc646",
+      "id": "9962491a",
       "execution_count": null,
       "outputs": []
     },
@@ -247,7 +248,7 @@
         "\n",
         "## 5. Visualisation"
       ],
-      "id": "b142b400"
+      "id": "5756c560"
     },
     {
       "cell_type": "code",
@@ -283,7 +284,7 @@
         "plt.savefig('../outputs/equite_territoriale.png', dpi=150, bbox_inches='tight')\n",
         "plt.show()"
       ],
-      "id": "47d415ec",
+      "id": "1b483e6e",
       "execution_count": null,
       "outputs": []
     },
@@ -313,7 +314,7 @@
         "*Données : Système d'information des aides d'État — Préfecture du Nord.\n",
         "Population : INSEE RP 2022 (PMUN). Analyse réalisée avec Python / pandas.*"
       ],
-      "id": "21fba638"
+      "id": "9f391004"
     }
   ],
   "metadata": {

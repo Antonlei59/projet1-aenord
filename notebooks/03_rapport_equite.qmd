@@ -12,6 +12,7 @@ format:
     theme: cosmo
     fig-width: 10
     fig-height: 8
+    embed-resources: true
 execute:
   echo: true
   warning: false

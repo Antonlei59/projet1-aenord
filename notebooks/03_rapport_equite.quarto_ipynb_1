@@ -2,7 +2,7 @@
  "cells": [
   {
    "cell_type": "markdown",
-   "id": "198df2e5",
+   "id": "851cf8c3",
    "metadata": {},
    "source": [
     "---\n",
@@ -19,6 +19,7 @@
     "    theme: cosmo\n",
     "    fig-width: 10\n",
     "    fig-height: 8\n",
+    "    embed-resources: true\n",
     "execute:\n",
     "  echo: true\n",
     "  warning: false\n",
@@ -42,7 +43,7 @@
   {
    "cell_type": "code",
    "execution_count": 1,
-   "id": "9c51fc07",
+   "id": "541e4fcf",
    "metadata": {},
    "outputs": [
     {
@@ -75,7 +76,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "6bbd865f",
+   "id": "b46bd437",
    "metadata": {},
    "source": [
     "---\n",
@@ -88,7 +89,7 @@
   {
    "cell_type": "code",
    "execution_count": 2,
-   "id": "a2f79610",
+   "id": "e59cbb30",
    "metadata": {},
    "outputs": [
     {
@@ -110,7 +111,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "836271da",
+   "id": "cccd2e50",
    "metadata": {},
    "source": [
     "### 2b. Financements actifs avec classification du dispositif"
@@ -119,7 +120,7 @@
   {
    "cell_type": "code",
    "execution_count": 3,
-   "id": "88a1710d",
+   "id": "0b2af573",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -150,7 +151,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "63fde478",
+   "id": "7017c17f",
    "metadata": {},
    "source": [
     "### 2c. Filtrage sur les communes de l'arrondissement"
@@ -159,7 +160,7 @@
   {
    "cell_type": "code",
    "execution_count": 4,
-   "id": "c63ccfec",
+   "id": "8b659d0d",
    "metadata": {},
    "outputs": [
     {
@@ -183,7 +184,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "e818d512",
+   "id": "26bcb7c5",
    "metadata": {},
    "source": [
     "---\n",
@@ -196,7 +197,7 @@
   {
    "cell_type": "code",
    "execution_count": 5,
-   "id": "5f964b09",
+   "id": "1fb15df6",
    "metadata": {},
    "outputs": [
     {
@@ -227,7 +228,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "175af261",
+   "id": "3ca3b93f",
    "metadata": {},
    "source": [
     "---\n",
@@ -244,7 +245,7 @@
   {
    "cell_type": "code",
    "execution_count": 6,
-   "id": "9ba3c5b7",
+   "id": "3740b4af",
    "metadata": {},
    "outputs": [
     {
@@ -497,7 +498,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "ff70d160",
+   "id": "67656b3e",
    "metadata": {},
    "source": [
     "---\n",
@@ -508,7 +509,7 @@
   {
    "cell_type": "code",
    "execution_count": 7,
-   "id": "42628516",
+   "id": "6018b4f4",
    "metadata": {},
    "outputs": [
     {
@@ -561,7 +562,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "9f98e59b",
+   "id": "18f225d4",
    "metadata": {},
    "source": [
     "---\n",

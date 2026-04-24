@@ -1,0 +1,329 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "title: \"Équité territoriale — Subventions d'État aux communes\"\n",
+        "subtitle: \"Arrondissement de Lille, 2021–2025\"\n",
+        "author: \"Anton\"\n",
+        "date: today\n",
+        "format:\n",
+        "  html:\n",
+        "    toc: true\n",
+        "    toc-title: \"Sommaire\"\n",
+        "    toc-depth: 2\n",
+        "    code-fold: true\n",
+        "    theme: cosmo\n",
+        "    fig-width: 10\n",
+        "    fig-height: 8\n",
+        "execute:\n",
+        "  echo: true\n",
+        "  warning: false\n",
+        "lang: fr\n",
+        "---\n",
+        "\n",
+        "## Introduction\n",
+        "\n",
+        "Ce rapport analyse la répartition des subventions d'État (DSIL, DETR, Fonds Vert, Recyclage Foncier…)\n",
+        "entre les communes de l'arrondissement de Lille sur la période 2021–2025.\n",
+        "\n",
+        "L'objectif est de mesurer l'**équité territoriale** : chaque commune a-t-elle reçu une part\n",
+        "de l'enveloppe proportionnelle à son poids démographique ?\n",
+        "Les écarts positifs signalent des communes sur-dotées ; les écarts négatifs, des communes sous-dotées.\n",
+        "\n",
+        "---\n",
+        "\n",
+        "## 1. Chargement des données"
+      ],
+      "id": "90a81f89"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import pandas as pd\n",
+        "import matplotlib.pyplot as plt\n",
+        "import matplotlib.ticker as mticker\n",
+        "\n",
+        "# Sources\n",
+        "territoire = pd.read_csv('../data/liste_territoire.csv')\n",
+        "financement = pd.read_csv('../data/financement.csv')\n",
+        "operation   = pd.read_csv('../data/opérations.csv')\n",
+        "population  = pd.read_csv('../data/populations_communes_nord_2022.csv', dtype={'COM': str})\n",
+        "\n",
+        "print(f\"Territoire : {len(territoire)} lignes\")\n",
+        "print(f\"Financement : {len(financement)} lignes\")\n",
+        "print(f\"Opérations : {len(operation)} lignes\")\n",
+        "print(f\"Population : {len(population)} communes\")"
+      ],
+      "id": "186a21cc",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "\n",
+        "## 2. Préparation\n",
+        "\n",
+        "### 2a. Communes de l'arrondissement de Lille (595)"
+      ],
+      "id": "5922b81d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "communes = territoire[territoire['type_territoire'] == 'COM'].copy()\n",
+        "communes['insee_ardt'] = communes['insee_ardt'].astype(str).str[:-2]\n",
+        "communes = communes[communes['insee_ardt'] == '595']\n",
+        "communes['COM'] = communes['insee_siege'].dropna().astype(int).astype(str)\n",
+        "\n",
+        "print(f\"{len(communes)} communes dans l'arrondissement de Lille\")"
+      ],
+      "id": "87b5d493",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### 2b. Financements actifs avec classification du dispositif"
+      ],
+      "id": "957cd7b1"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# Exclure les lignes annulées\n",
+        "financement_actif = financement[financement['is_annule'] != True].copy()\n",
+        "\n",
+        "# Classification fund_type\n",
+        "def attribution_fund_type(type_fct):\n",
+        "    if pd.isna(type_fct):\n",
+        "        return 'other'\n",
+        "    t = str(type_fct).lower()\n",
+        "    if 'friche' in t: return 'RF'\n",
+        "    if 'vert'   in t: return 'FV'\n",
+        "    if 'fnadt'  in t: return 'FNADT'\n",
+        "    if 'dpv'    in t: return 'DPV'\n",
+        "    if 'dsil'   in t: return 'DSIL'\n",
+        "    if 'det'    in t: return 'DETR'\n",
+        "    return 'other'\n",
+        "\n",
+        "financement_actif['fund_type'] = financement_actif['type_fct'].apply(attribution_fund_type)\n",
+        "\n",
+        "# Jointure avec opérations pour récupérer sirene\n",
+        "fin_op = financement_actif.merge(\n",
+        "    operation[['id_operation', 'sirene', 'programmation']],\n",
+        "    on='id_operation', how='left'\n",
+        ")"
+      ],
+      "id": "57abdef2",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### 2c. Filtrage sur les communes de l'arrondissement"
+      ],
+      "id": "f09bbc38"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "fin_communes = fin_op.merge(\n",
+        "    communes[['sirene', 'libelle_territoire', 'COM']],\n",
+        "    on='sirene', how='inner'\n",
+        ")\n",
+        "\n",
+        "print(f\"{len(fin_communes)} lignes de financement vers des communes de l'arrondissement\")\n",
+        "print(f\"Montant total : {fin_communes['montant_sub'].sum():,.0f} €\")"
+      ],
+      "id": "625ee06e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "\n",
+        "## 3. Résultats bruts\n",
+        "\n",
+        "### Top 10 des communes les plus subventionnées"
+      ],
+      "id": "a08a00da"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "sub_par_commune = (\n",
+        "    fin_communes\n",
+        "    .groupby(['COM', 'libelle_territoire'])['montant_sub']\n",
+        "    .sum()\n",
+        "    .reset_index()\n",
+        "    .rename(columns={'libelle_territoire': 'commune', 'montant_sub': 'montant_recu'})\n",
+        "    .sort_values('montant_recu', ascending=False)\n",
+        ")\n",
+        "\n",
+        "top10 = sub_par_commune.head(10).copy()\n",
+        "top10['montant_recu_M€'] = (top10['montant_recu'] / 1e6).round(2)\n",
+        "top10[['commune', 'montant_recu_M€']].to_html(index=False)"
+      ],
+      "id": "1d5fb528",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "\n",
+        "## 4. Analyse d'équité\n",
+        "\n",
+        "La méthode est simple : pour chaque commune, on calcule sa **quote-part démographique**\n",
+        "(population / population totale de l'arrondissement), puis on en déduit le montant\n",
+        "qu'elle aurait dû recevoir si la répartition avait été strictement proportionnelle.\n",
+        "\n",
+        "L'**écart** = montant reçu − montant théorique."
+      ],
+      "id": "8b5bfdb0"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "analyse = sub_par_commune.merge(\n",
+        "    population[['COM', 'Commune', 'PMUN']],\n",
+        "    on='COM', how='left'\n",
+        ")\n",
+        "analyse['PMUN'] = pd.to_numeric(analyse['PMUN'], errors='coerce')\n",
+        "\n",
+        "# Totaux intra-arrondissement (communes avec données population)\n",
+        "analyse_complete = analyse.dropna(subset=['PMUN']).copy()\n",
+        "total_sub = analyse_complete['montant_recu'].sum()\n",
+        "total_pop = analyse_complete['PMUN'].sum()\n",
+        "\n",
+        "analyse_complete['poids_demo']        = analyse_complete['PMUN'] / total_pop\n",
+        "analyse_complete['montant_theorique'] = analyse_complete['poids_demo'] * total_sub\n",
+        "analyse_complete['ecart']             = analyse_complete['montant_recu'] - analyse_complete['montant_theorique']\n",
+        "analyse_complete['ecart_pct']         = (analyse_complete['ecart'] / analyse_complete['montant_theorique'] * 100).round(1)\n",
+        "\n",
+        "analyse_complete = analyse_complete.sort_values('ecart', ascending=False)\n",
+        "\n",
+        "# Affichage résumé\n",
+        "cols = ['commune', 'PMUN', 'montant_recu', 'montant_theorique', 'ecart', 'ecart_pct']\n",
+        "resume = analyse_complete[cols].copy()\n",
+        "for col in ['montant_recu', 'montant_theorique', 'ecart']:\n",
+        "    resume[col] = resume[col].apply(lambda x: f\"{x/1e6:.2f} M€\")\n",
+        "resume['PMUN'] = resume['PMUN'].apply(lambda x: f\"{int(x):,}\")\n",
+        "resume.columns = ['Commune', 'Population', 'Reçu', 'Quote-part théorique', 'Écart', 'Écart (%)']\n",
+        "\n",
+        "print(f\"Enveloppe totale analysée : {total_sub/1e6:.1f} M€  |  Population couverte : {int(total_pop):,} hab.\")\n",
+        "resume.head(15)"
+      ],
+      "id": "725dc646",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "\n",
+        "## 5. Visualisation"
+      ],
+      "id": "b142b400"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "analyse_triee = analyse_complete.sort_values('ecart')\n",
+        "n = len(analyse_triee)\n",
+        "\n",
+        "fig, ax = plt.subplots(figsize=(12, max(10, n * 0.28)))\n",
+        "\n",
+        "couleurs = ['steelblue' if x >= 0 else 'tomato' for x in analyse_triee['ecart']]\n",
+        "bars = ax.barh(analyse_triee['commune'], analyse_triee['ecart'] / 1e6, color=couleurs)\n",
+        "\n",
+        "ax.axvline(0, color='black', linewidth=0.9)\n",
+        "ax.set_title(\n",
+        "    \"Équité territoriale — Arrondissement de Lille (2021–2025)\\n\"\n",
+        "    \"Écart entre subventions reçues et quote-part démographique\",\n",
+        "    fontsize=13, pad=12\n",
+        ")\n",
+        "ax.set_xlabel('Écart en millions d\\'euros (M€)', fontsize=11)\n",
+        "ax.tick_params(axis='y', labelsize=8)\n",
+        "ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f\"{x:.1f} M€\"))\n",
+        "\n",
+        "# Légende\n",
+        "from matplotlib.patches import Patch\n",
+        "legende = [\n",
+        "    Patch(facecolor='steelblue', label='Sur-dotée (reçu > quote-part)'),\n",
+        "    Patch(facecolor='tomato',    label='Sous-dotée (reçu < quote-part)')\n",
+        "]\n",
+        "ax.legend(handles=legende, loc='lower right', fontsize=9)\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.savefig('../outputs/equite_territoriale.png', dpi=150, bbox_inches='tight')\n",
+        "plt.show()"
+      ],
+      "id": "47d415ec",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "\n",
+        "## 6. Conclusion\n",
+        "\n",
+        "Ce premier regard sur la répartition des subventions révèle des écarts significatifs\n",
+        "entre communes. Ces disparités peuvent s'expliquer par plusieurs facteurs :\n",
+        "\n",
+        "- **Capacité à déposer des dossiers** : les grandes communes disposent de services techniques\n",
+        "  plus étoffés.\n",
+        "- **Nature des projets éligibles** : certains dispositifs (DSIL) financent des projets\n",
+        "  d'envergure concentrés dans les pôles urbains.\n",
+        "- **Contexte politique et calendrier** : les programmations annuelles influencent les\n",
+        "  attributions.\n",
+        "\n",
+        "Une analyse complémentaire par dispositif (`fund_type`) et par année permettrait\n",
+        "d'affiner ce diagnostic.\n",
+        "\n",
+        "---\n",
+        "\n",
+        "*Données : Système d'information des aides d'État — Préfecture du Nord.\n",
+        "Population : INSEE RP 2022 (PMUN). Analyse réalisée avec Python / pandas.*"
+      ],
+      "id": "21fba638"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "c:\\Users\\anton\\projets\\projet1_aenord\\.venv\\share\\jupyter\\kernels\\python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
